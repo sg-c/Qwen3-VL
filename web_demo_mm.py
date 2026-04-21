@@ -69,15 +69,19 @@ def _get_args():
     parser.add_argument('--quantization',
                         type=str,
                         default=None,
-                        help='Quantization method for vLLM backend (e.g. awq, gptq, fp8, bitsandbytes). Only for vLLM backend.')
+                        help='Quantization method for vLLM backend (e.g. awq, gptq, fp8, modelopt_fp4, petit_nvfp4, mxfp4, bitsandbytes). Only for vLLM backend.')
+    parser.add_argument('--allow-deprecated-quantization',
+                        action='store_true',
+                        default=False,
+                        help='Allow deprecated quantization methods for vLLM backend. Only for vLLM backend.')
 
     args = parser.parse_args()
 
     # Validate backend-specific quantization flags
     if args.backend == 'vllm' and (args.load_in_4bit or args.load_in_8bit):
         raise ValueError("--load-in-4bit and --load-in-8bit are only for HF backend. Use --quantization with vLLM backend instead.")
-    if args.backend == 'hf' and args.quantization is not None:
-        raise ValueError("--quantization is only for vLLM backend. Use --load-in-4bit or --load-in-8bit with HF backend instead.")
+    if args.backend == 'hf' and (args.quantization is not None or args.allow_deprecated_quantization):
+        raise ValueError("--quantization and --allow-deprecated-quantization are only for vLLM backend. Use --load-in-4bit or --load-in-8bit with HF backend instead.")
 
     return args
 
@@ -103,6 +107,8 @@ def _load_model_processor(args):
         )
         if args.quantization is not None:
             llm_kwargs['quantization'] = args.quantization
+        if args.allow_deprecated_quantization:
+            llm_kwargs['allow_deprecated_quantization'] = True
         model = LLM(**llm_kwargs)
 
         # Load processor for vLLM
