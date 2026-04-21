@@ -10,7 +10,7 @@ from threading import Thread
 
 import gradio as gr
 import torch
-from transformers import AutoProcessor, AutoModelForImageTextToText, TextIteratorStreamer
+from transformers import AutoProcessor, AutoModelForImageTextToText, TextIteratorStreamer, BitsAndBytesConfig
 
 try:
     from vllm import SamplingParams, LLM
@@ -58,8 +58,27 @@ def _get_args():
                         type=int,
                         default=None,
                         help='Tensor parallel size for vLLM (default: auto)')
+    parser.add_argument('--load-in-4bit',
+                        action='store_true',
+                        default=False,
+                        help='Load model with 4-bit quantization (bitsandbytes). Only for HF backend.')
+    parser.add_argument('--load-in-8bit',
+                        action='store_true',
+                        default=False,
+                        help='Load model with 8-bit quantization (bitsandbytes). Only for HF backend.')
+    parser.add_argument('--quantization',
+                        type=str,
+                        default=None,
+                        help='Quantization method for vLLM backend (e.g. awq, gptq, fp8, bitsandbytes). Only for vLLM backend.')
 
     args = parser.parse_args()
+
+    # Validate backend-specific quantization flags
+    if args.backend == 'vllm' and (args.load_in_4bit or args.load_in_8bit):
+        raise ValueError("--load-in-4bit and --load-in-8bit are only for HF backend. Use --quantization with vLLM backend instead.")
+    if args.backend == 'hf' and args.quantization is not None:
+        raise ValueError("--quantization is only for vLLM backend. Use --load-in-4bit or --load-in-8bit with HF backend instead.")
+
     return args
 
 
@@ -74,7 +93,7 @@ def _load_model_processor(args):
             tensor_parallel_size = torch.cuda.device_count()
 
         # Initialize vLLM sync engine
-        model = LLM(
+        llm_kwargs = dict(
             model=args.checkpoint_path,
             trust_remote_code=True,
             gpu_memory_utilization=args.gpu_memory_utilization,
@@ -82,24 +101,40 @@ def _load_model_processor(args):
             tensor_parallel_size=tensor_parallel_size,
             seed=0
         )
+        if args.quantization is not None:
+            llm_kwargs['quantization'] = args.quantization
+        model = LLM(**llm_kwargs)
 
         # Load processor for vLLM
         processor = AutoProcessor.from_pretrained(args.checkpoint_path)
         return model, processor, 'vllm'
     else:
+        if args.load_in_4bit and args.load_in_8bit:
+            raise ValueError("Cannot use both --load-in-4bit and --load-in-8bit at the same time.")
+
+        quantization_config = None
+        if args.load_in_4bit:
+            quantization_config = BitsAndBytesConfig(load_in_4bit=True)
+        elif args.load_in_8bit:
+            quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+
         if args.cpu_only:
             device_map = 'cpu'
         else:
             device_map = 'auto'
 
+        load_kwargs = {
+            'device_map': device_map,
+        }
+        if quantization_config is not None:
+            load_kwargs['quantization_config'] = quantization_config
+
         # Check if flash-attn2 flag is enabled and load model accordingly
         if args.flash_attn2:
-            model = AutoModelForImageTextToText.from_pretrained(args.checkpoint_path,
-                                                                    torch_dtype='auto',
-                                                                    attn_implementation='flash_attention_2',
-                                                                    device_map=device_map)
-        else:
-            model = AutoModelForImageTextToText.from_pretrained(args.checkpoint_path, device_map=device_map)
+            load_kwargs['torch_dtype'] = 'auto'
+            load_kwargs['attn_implementation'] = 'flash_attention_2'
+
+        model = AutoModelForImageTextToText.from_pretrained(args.checkpoint_path, **load_kwargs)
 
         processor = AutoProcessor.from_pretrained(args.checkpoint_path)
         return model, processor, 'hf'
