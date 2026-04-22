@@ -6,6 +6,9 @@ git+https://github.com/huggingface/transformers.git@7aa888b7fa477d13153ffbfe107d
 torch
 torchvision
 accelerate
+transformers
+qwen-vl-utils
+vllm
 
 # Optional dependency
 # Uncomment the following line if you need flash-attn
