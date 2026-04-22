@@ -54,6 +54,10 @@ def _get_args():
                         type=float,
                         default=0.70,
                         help='GPU memory utilization for vLLM (default: 0.70)')
+    parser.add_argument('--max-model-len',
+                        type=int,
+                        default=None,
+                        help='Maximum model length for vLLM (default: auto)')
     parser.add_argument('--tensor-parallel-size',
                         type=int,
                         default=None,
@@ -109,6 +113,8 @@ def _load_model_processor(args):
             llm_kwargs['quantization'] = args.quantization
         if args.allow_deprecated_quantization:
             llm_kwargs['allow_deprecated_quantization'] = True
+        if args.max_model_len is not None:
+            llm_kwargs['max_model_len'] = args.max_model_len
         model = LLM(**llm_kwargs)
 
         # Load processor for vLLM
