@@ -153,6 +153,8 @@ def _load_model_processor(args):
 
 
 def _parse_text(text):
+    if not isinstance(text, str):
+        return text
     lines = text.split('\n')
     lines = [line for line in lines if line != '']
     count = 0
@@ -295,7 +297,7 @@ def _launch_demo(args, model, processor, backend):
                 _chatbot.pop()
                 task_history.pop()
                 return _chatbot
-            print('User: ' + _parse_text(query))
+            print('User: ' + str(_parse_text(query)))
             history_cp = copy.deepcopy(task_history)
             full_response = ''
             messages = []
@@ -356,7 +358,7 @@ def _launch_demo(args, model, processor, backend):
         task_history = task_history if task_history is not None else []
         history = history + [(_parse_text(text), None)]
         task_history = task_history + [(task_text, None)]
-        return history, task_history, ''
+        return history, task_history
 
     def add_file(history, task_history, file):
         history = history if history is not None else []
@@ -383,7 +385,7 @@ def _launch_demo(args, model, processor, backend):
 <center><font size=3>This WebUI is based on Qwen3-VL, developed by Alibaba Cloud. Backend: {backend.upper()}</center>""")
         gr.Markdown(f"""<center><font size=3>本 WebUI 基于 Qwen3-VL。</center>""")
 
-        chatbot = gr.Chatbot(label='Qwen3-VL', elem_classes='control-height', height=500)
+        chatbot = gr.Chatbot(label='Qwen3-VL', elem_classes='control-height', height=500, type='tuples')
         query = gr.Textbox(lines=2, label='Input')
         task_history = gr.State([])
 
