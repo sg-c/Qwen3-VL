@@ -24,6 +24,11 @@ def recognize_objects(image_path: str, base_url: str, model: str, prompt: str | 
 
     b64_image = encode_image(image_path)
 
+    # Quick Validation: ensure <image> token is present for Qwen3-VL
+    text = prompt or "Describe only what you see in the image."
+    if "<image>" not in text:
+        text = "<image>\n" + text
+
     messages = [
         {
             "role": "user",
@@ -36,7 +41,7 @@ def recognize_objects(image_path: str, base_url: str, model: str, prompt: str | 
                 },
                 {
                     "type": "text",
-                    "text": prompt or "List all objects you can recognize in this image.",
+                    "text": text,
                 },
             ],
         }
@@ -64,7 +69,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--prompt",
-        default="List all objects you can recognize in this image, be concise.",
+        default="Describe only what you see in the image.",
         help="Prompt to send along with the image",
     )
     args = parser.parse_args()
