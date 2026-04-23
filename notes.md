@@ -1,12 +1,14 @@
 
 ```bash
+pip install uv
+
 git clone https://github.com/sg-c/Qwen3-VL.git
 
 cd Qwen3-VL
 uv venv
 source .venv/bin/activate
 uv pip install -r requirements_web_demo.txt
-uv pip install transformers qwen-vl-utils vllm
+uv pip install qwen-vl-utils vllm
 
 hf download Qwen/Qwen3-VL-8B-Instruct --local-dir Qwen3-VL-8B-Instruct
 
