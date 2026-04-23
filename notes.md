@@ -34,4 +34,8 @@ vllm serve ./Qwen3-VL-8B-Instruct \
   --media-io-kwargs '{"video": {"num_frames": -1}}' \
   --host 0.0.0.0 \
   --port 7860
+
+cd Qwen3-VL
+source .venv/bin/activate
+uv run python tryout.py target.png --model ./Qwen3-VL-8B-Instruct --prompt "hi"
 ```
