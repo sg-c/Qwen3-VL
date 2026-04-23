@@ -22,9 +22,10 @@ hf download Qwen/Qwen3-VL-8B-Instruct --local-dir Qwen3-VL-8B-Instruct
 # --server-port 7860
 
 
+# to quantize
+# add  --quantization fp8 \
 vllm serve ./Qwen3-VL-8B-Instruct \
   --trust-remote-code \
-  --quantization fp8 \
   --tensor-parallel-size 1 \
   --mm-encoder-tp-mode data \
   --async-scheduling \
