@@ -167,7 +167,7 @@ def main() -> None:
     print()
 
     image = Image.open(args.image)
-    plot_bounding_boxes(image, response, args.output)
+    image = plot_bounding_boxes(image, response, args.output)
 
     if not args.output:
         image.show()
